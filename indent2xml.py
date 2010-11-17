@@ -24,7 +24,22 @@ re_node = compile(r'^(\t+)?([_a-zA-Z]+)\,?([^\t]+)?\t?(.*)')
 
 xml_lines = [] # parsed lines
 
-def parse(file=None, debug=False):
+class ParseError(Exception):
+	def __init__(self, lineno, str):
+		self._lineno = lineno
+		self._str = str
+		
+	def __str__(self):
+		re_ws = compile(r'^(\s+)')
+		ws_match = re_ws.match(self._str)
+		if ws_match:
+			ws_table = {'\t':'<tab>', ' ':'<spc>'}
+			ws_str = ''.join([ws_table[ws] for ws in ws_match.group()])
+		else:
+			ws_str = ''
+		return "ParseError at line {} '{}{}'".format(self._lineno, ws_str, self._str.strip())
+
+def parse(file=None, quiet=False, debug=False):
 	if debug:
 		from sys import stderr
 		def out(*items):
@@ -69,43 +84,54 @@ def parse(file=None, debug=False):
 			xml_lines.append("%s</%s>" % ('\t' * indent, name,))
 			return xml_lines[-1]
 
-		for line in indent_lines:
+		for ptr in range(0, len(indent_lines)):
 			# try each regular expression until a match is found, or none.
 			# we should have filtered out empty lines already so significant
 			# lines should be all that is left.
-			match = re_node.match(line)
-			if match:
-				# node matches will continue 4 fields:
-				#	1. all tabs from start of line to first non-tab character.
-				#	   len(match.groups()[0]) should give level of node entry.
-				#	2. name of tag.
-				#	3. tag options.
-				#	   ' '.join(match.groups()[2].split(',')) should return a
-				#	   string appropriate for putting in the first tag of a
-				#	   node.
-				#	4. any content the tag should contain between its opening
-				#	   and closing tags.
-				tag_indent = match.groups()[0] and len(match.groups()[0]) or 0
-				if debug: out(match.groups(), current_indent(), open_tags)
-				while tag_indent < current_indent():
-					close_tag(current_indent()-1)
-				closed, name, tag = open_tag(match.groups())
-				xml_lines.append(tag)
-				continue
-							
-			match = re_comment.match(line)
-			if match:
-				# comment found. do nothing fancy, just append it as an
-				# xml comment.
-				xml_lines.append("<!-- %s -->" % (line,))
-				continue
+			try:
+				match = re_node.match(indent_lines[ptr])
+				if match:
+					# node matches will continue 4 fields:
+					#	1. all tabs from start of line to first non-tab character.
+					#	   len(match.groups()[0]) should give level of node entry.
+					#	2. name of tag.
+					#	3. tag options.
+					#	   ' '.join(match.groups()[2].split(',')) should return a
+					#	   string appropriate for putting in the first tag of a
+					#	   node.
+					#	4. any content the tag should contain between its opening
+					#	   and closing tags.
+					tag_indent = match.groups()[0] and len(match.groups()[0]) or 0
+					if debug: out(match.groups(), current_indent(), open_tags)
+					while tag_indent < current_indent():
+						close_tag(current_indent()-1)
+					closed, name, tag = open_tag(match.groups())
+					xml_lines.append(tag)
+					continue
+								
+				match = re_comment.match(indent_lines[ptr])
+				if match:
+					# comment found. do nothing fancy, just append it as an
+					# xml comment.
+					xml_lines.append("<!-- %s -->" % (indent_lines[ptr],))
+					continue
+					
+				match = re_xml.match(indent_lines[ptr])
+				if match:
+					# xml line found (i.e. <?xml ...?>), prepend to lines
+					xml_lines.reverse()
+					xml_lines.append(indent_lines[ptr])
+					xml_lines.reverse()
+					continue
+					
+				# If no match is found, then a parse error has occurred.
+				raise ParseError((ptr + 1), indent_lines[ptr])
+			except ParseError as error:
+				from sys import stderr,exit
+				if not quiet:
+					print(error, file=stderr)
+					exit(1)
 				
-			match = re_xml.match(line)
-			if match:
-				# xml line found (i.e. <?xml ...?>), prepend to lines
-				xml_lines.reverse()
-				xml_lines.append(line)
-				xml_lines.reverse()
 				
 		# close any remaining open tags.
 		while len(open_tags) > 0: close_tag(current_indent()-1)
@@ -119,4 +145,3 @@ if __name__ == '__main__':
 	filename = 'data/testfile.struct'
 	xml = parse(filename, True)
 	print(xml)
-	
