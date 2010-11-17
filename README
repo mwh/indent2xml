@@ -1,0 +1,107 @@
+indent2xml
+========================================================================
+Simple module which uses the count of tabs at the front of each newline
+to determine a parent/child relationship for writing an output xml file.
+
+EXAMPLE
+========================================================================
+If I wanted to write out the simple xml file:
+<?xml version="1.0"?>
+<root>
+	<child option="value">data</child>
+</root>
+
+I could commit this to a text file as:
+<?xml version="1.0"?>
+root
+	child,option="value"	data
+
+and then run the resulting text file through the indent2xml command as:
+indent2xml /path/to/text/file > /path/to/output/file
+
+My goal in writing this was to simplify handwriting openbox3 rc.xml
+files, but it can be used in any manner of xml output. Although, the 
+python parsing module is not overly complex, instead it attempts to be
+as simple as possible, leaving more responsibility with the user for
+appropriate options.
+=======================================================================
+
+USAGE
+========================================================================
+Rules of the road are as follows,
+	1. Initial whitespace *must* be tabs, spaces or other non-visual 
+	   characters will not be recognized and will cause the line to be
+	   passed over.
+	   
+	   Root nodes should not have any tab in front, but instead be flush
+	   with the first column of the text file. Consequent children will
+	   be indented 1 tab and a childs children will be 2, etc.
+	   
+	2. Descendants of any single node will be on any line below their
+	   root, and be at least one more indent in that the parent. 
+	   Example:
+	   
+	   root
+	   <tab>child
+	   <tab><tab>child
+	   
+	   Produces:
+	   <root>
+	   	   <child>
+	   	   	   <child></child>
+		   </child>
+	   </root>
+	   
+	3. Tag options are parsed directly from the structured file into
+	   the tag they are associated with. All options are specified as:
+	   tag,option1="value",option2="value"
+	   
+	4. Content to be enclosed by a tag should be seperated by one tab
+	   and be placed on the same line as the associated tag:
+	   tag<tab>text content
+	   
+	   No additional parsing is done on the text content, so it may
+	   include any manner of data. The only restriction is that it does
+	   not spread over to the next line, at this time the interpreter
+	   will not recognize it.
+	  
+	5. XML directives are transplanted directly from the structure file
+	   into the resulting text. Any line starting with "<?" will be
+	   assumed to be a directive and passed in, unparsed. This allows
+	   for the attachment of <?xml-stylesheet ...?> or just <?xml ...?>
+	   lines.
+	   
+	   The parser does not assume to be writing valid xml, but instead
+	   relies on the user to provide a valid <?xml ...?> header line.
+	   
+	   
+SHORTCOMINGS
+========================================================================
+Aside from the previously mentioned restrictions, there are some things
+worth mentioning.
+	1. It is the users responsibility to give the appropriate <?...?>
+	   lines to produce valid xml code, if-that-is-important. At this
+	   time the module makes no contract that stipulates it will do
+	   this.
+	   
+	2. The module does not know how to output non-terminating tags or
+	   tags which do not have a terminating tag. So you will never get
+	   a <tag ../> or simply <tag>. Instead there will always be a
+	   matched set. So it will always be <tag></tag>, even if there is
+	   no enclosed content.
+	   
+	   TODO: Add recognition for times when closing tags are not 
+	   necessary.
+	   
+	3. There are no commandline options for the provided script, it
+	   will directly spit the resulting text out.
+	   
+	   TODO: Add output file and other options to massage output.
+========================================================================
+
+I hope this module is useful, that is all that can be hoped!  :)  If you
+have any suggestions for improvements or would like to share any
+improvements my contact information is below.
+
+Nathan Middleton
+nathan/dot/middleton\at\gmail/dot/com (hope you're human!)

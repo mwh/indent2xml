@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 setup(name='indent2xml',
-	  version='0.5',
+	  version='1',
 	  description='Convert tab-delimited file into a parent-child xml file.',
 	  author='Nathan Middleton',
 	  author_email='nathan.middleton@gmail.com',
