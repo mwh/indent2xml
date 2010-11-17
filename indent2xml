@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
 import indent2xml
+from sys import argv
+import os
 
 if __name__ == '__main__':
-	filename = 'data/testfile.struct'
-	xml = indent2xml.parse(filename)
-	print('\n'.join(xml))
-	
+	if len(argv) > 1 and os.path.exists(argv[1]):
+		xml = indent2xml.parse(argv[1])
+		print(xml)
+	else:
+		print('Please provided a valid filename.')
+		

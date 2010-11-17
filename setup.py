@@ -7,5 +7,5 @@ setup(name='indent2xml',
 	  author='Nathan Middleton',
 	  author_email='nathan.middleton@gmail.com',
 	  py_modules=['indent2xml'],
-	  data_files=[('bin','indent2xml')]
+	  scripts=['indent2xml']
 	 )

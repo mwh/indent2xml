@@ -280,18 +280,18 @@ openbox_config,xmlns="http://openbox.org/3.4/rc"
 		manageDesktops	yes
 		
 	applications
-		#application,name="",class="",role="",type=""
-			#decor	yes
-			#shade	no
-			#position,force="no"
-				#x	center
-				#y	200
-				#monitor	1
-			#focus	yes
-			#desktop	1
-			#layer	normal
-			#iconic	no
-			#skip_pager	no
-			#skip_taskbar	no
-			#fullscreen	yes
-			#maximized	true
+#		application,name="",class="",role="",type=""
+#			decor	yes
+#			shade	no
+#			position,force="no"
+#				x	center
+#				y	200
+#				monitor	1
+#			focus	yes
+#			desktop	1
+#			layer	normal
+#			iconic	no
+#			skip_pager	no
+#			skip_taskbar	no
+#			fullscreen	yes
+#			maximized	true
