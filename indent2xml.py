@@ -31,22 +31,43 @@ class ParseError(Exception):
 		
 	def __str__(self):
 		ws_match = re.match(r'^(\s+)', self._str)
-		if ws_match:
-			ws_str = ''.join([self.WS_TABLE[ws] for ws in ws_match.group()])
-		else:
-			ws_str = ''
+		ws_str = ''.join([self.WS_TABLE[ws] for ws in ws_match.group()]) if ws_match else ''
 		return "ParseError at line {} '{}{}'".format(self._lineno, ws_str, self._str.strip())
 
 def parse(file=None, quiet=False, debug=False):
 	# regular expressions used for line matching
-	re_comment = re.compile(r'^(\s+)?#')
-	re_xml = re.compile(r'^<\?')
-	re_node = re.compile(r'^(\t+)?([_a-zA-Z]+)\,?([^\t]+)?\t?(.*)')
-	re_blank = re.compile(r'^\s*$')
+	re_comment = re.compile(r'^(\s*)#(\s*)(.*)')					# comments
+	re_xml = re.compile(r'^<\?')									# <?xml ...?> lines
+	re_node = re.compile(r'^(\t+)?([_a-zA-Z]+)\,?([^\t]+)?\t?(.*)')	# valid node declarations
+	re_blank = re.compile(r'^\s*$')									# empty lines
 
-	# parser 
 	xml_lines = [] # parsed lines
 	open_tags = [] # tags with children will be added to this stack.
+
+	def current_indent():
+		""" return the current indent level """
+		return len(open_tags)
+
+	def open_tag(match):
+		""" return a opening tag string for parsed line """
+		indent = match[0] if match[0] else ''
+		name = match[1]
+		options = (' ' + ' '.join(match[2].split(','))) if match[2] else ''
+		content = match[3].strip()
+		
+		if content:
+			tag = "{}<{}{}>{}</{}>".format(indent, name, options, content, name)
+		else:
+			tag = "{}<{}{}>".format(indent, name, options)
+			open_tags.append(name)
+
+		return (content, name, tag,)
+
+	def close_tag(indent):
+		""" close the top tag on open_tags stack. """
+		name = open_tags.pop()
+		xml_lines.append("{}</{}>".format(('\t' * indent), name))
+		return xml_lines[-1]
 
 	if debug:
 		from sys import stderr
@@ -61,36 +82,8 @@ def parse(file=None, quiet=False, debug=False):
 		except:
 			raise IOError('There was an error reading the file {}.'.format(file))
 		
-		def current_indent():
-			""" return the current indent level """
-			return len(open_tags)
-
-		def open_tag(match):
-			""" return a opening tag string for parsed line """
-			tag = []
-			indent, name, options, content = match[0], match[1], match[2], match[3].strip()
-			if indent:
-				tag.append(indent)
-			tag.append('<')
-			tag.append(name)
-			if options:
-				tag.append(' ')
-				tag.append(' '.join(options.split(',')))
-			tag.append('>')
-			if len(content) > 0:
-				tag.append(content)
-				tag.append("</{}>".format(name))
-			else:
-				open_tags.append(name)
-			return (content, name, ''.join(tag),)
-
-		def close_tag(indent):
-			""" close the top tag on open_tags stack. """
-			name = open_tags.pop()
-			xml_lines.append("{}</{}>".format(('\t' * indent), name))
-			return xml_lines[-1]
-
-		for ptr in range(0, len(indent_lines)):
+		indent_length = len(indent_lines)
+		for ptr in range(0, indent_length):
 			# try each regular expression until a match is found, or none.
 			# we should have filtered out empty lines already so significant
 			# lines should be all that is left.
@@ -114,7 +107,7 @@ def parse(file=None, quiet=False, debug=False):
 					#	   node.
 					#	4. any content the tag should contain between its opening
 					#	   and closing tags.
-					tag_indent = match.groups()[0] and len(match.groups()[0]) or 0
+					tag_indent = len(match.groups()[0]) if match.groups()[0] else 0
 					if debug: out(match.groups(), current_indent(), open_tags)
 					while tag_indent < current_indent():
 						close_tag(current_indent()-1)
@@ -126,7 +119,8 @@ def parse(file=None, quiet=False, debug=False):
 				if match:
 					# comment found. do nothing fancy, just append it as an
 					# xml comment.
-					xml_lines.append("<!-- {} -->".format(indent_lines[ptr]))
+					indent, spacing, comment = match.groups()
+					xml_lines.append("{}<!--{}{}{}-->".format(indent, spacing, comment, spacing))
 					continue
 					
 				match = re_xml.match(indent_lines[ptr])
