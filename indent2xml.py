@@ -16,25 +16,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from re import compile
-
-re_comment = compile(r'^(\s+)?#')
-re_xml = compile(r'^<\?')
-re_node = compile(r'^(\t+)?([_a-zA-Z]+)\,?([^\t]+)?\t?(.*)')
-re_blank = compile(r'^\s*$')
-
-xml_lines = [] # parsed lines
+import re
 
 class ParseError(Exception):
-	WS_TABLE = {'\t':'<tab>', ' ':'<spc>'}
+	"""
+	ParseError: Raised during parsing when a line does not match
+	any known patterns.
+	"""
+	WS_TABLE = {' ':'<spc>', '\t':'<tab>', '\n':'<nln>', '\r':'<rtn>', '\f':'<frm>', '\v':'<vtb>'}
 	
 	def __init__(self, lineno, str):
 		self._lineno = lineno
 		self._str = str
 		
 	def __str__(self):
-		re_ws = compile(r'^(\s+)')
-		ws_match = re_ws.match(self._str)
+		ws_match = re.match(r'^(\s+)', self._str)
 		if ws_match:
 			ws_str = ''.join([self.WS_TABLE[ws] for ws in ws_match.group()])
 		else:
@@ -42,6 +38,16 @@ class ParseError(Exception):
 		return "ParseError at line {} '{}{}'".format(self._lineno, ws_str, self._str.strip())
 
 def parse(file=None, quiet=False, debug=False):
+	# regular expressions used for line matching
+	re_comment = re.compile(r'^(\s+)?#')
+	re_xml = re.compile(r'^<\?')
+	re_node = re.compile(r'^(\t+)?([_a-zA-Z]+)\,?([^\t]+)?\t?(.*)')
+	re_blank = re.compile(r'^\s*$')
+
+	# parser 
+	xml_lines = [] # parsed lines
+	open_tags = [] # tags with children will be added to this stack.
+
 	if debug:
 		from sys import stderr
 		def out(*items):
@@ -53,16 +59,14 @@ def parse(file=None, quiet=False, debug=False):
 			indent_lines = [line.rstrip() for line in fp.readlines()]
 			fp.close()
 		except:
-			raise Exception('Unable to read file.')
+			raise IOError('There was an error reading the file {}.'.format(file))
 		
-		open_tags = [] # tags with children will be added to this stack.
-		
-		#
 		def current_indent():
+			""" return the current indent level """
 			return len(open_tags)
 
-		# create text from parsed line
 		def open_tag(match):
+			""" return a opening tag string for parsed line """
 			tag = []
 			indent, name, options, content = match[0], match[1], match[2], match[3].strip()
 			if indent:
@@ -80,8 +84,8 @@ def parse(file=None, quiet=False, debug=False):
 				open_tags.append(name)
 			return (content, name, ''.join(tag),)
 
-		# remove top tag from open_tags stack and return a text version
 		def close_tag(indent):
+			""" close the top tag on open_tags stack. """
 			name = open_tags.pop()
 			xml_lines.append("{}</{}>".format(('\t' * indent), name))
 			return xml_lines[-1]
@@ -148,7 +152,7 @@ def parse(file=None, quiet=False, debug=False):
 		# return a stringified version of xml_lines stack.				
 		return '\n'.join(xml_lines)
 	else:
-		raise Exception('No file provided.')
+		raise ValueError('No filename provided to parse.')
 
 if __name__ == '__main__':
 	filename = 'data/testfile.struct'
