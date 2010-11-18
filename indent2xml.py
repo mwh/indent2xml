@@ -21,10 +21,13 @@ from re import compile
 re_comment = compile(r'^(\s+)?#')
 re_xml = compile(r'^<\?')
 re_node = compile(r'^(\t+)?([_a-zA-Z]+)\,?([^\t]+)?\t?(.*)')
+re_blank = compile(r'^\s*$')
 
 xml_lines = [] # parsed lines
 
 class ParseError(Exception):
+	WS_TABLE = {'\t':'<tab>', ' ':'<spc>'}
+	
 	def __init__(self, lineno, str):
 		self._lineno = lineno
 		self._str = str
@@ -33,8 +36,7 @@ class ParseError(Exception):
 		re_ws = compile(r'^(\s+)')
 		ws_match = re_ws.match(self._str)
 		if ws_match:
-			ws_table = {'\t':'<tab>', ' ':'<spc>'}
-			ws_str = ''.join([ws_table[ws] for ws in ws_match.group()])
+			ws_str = ''.join([self.WS_TABLE[ws] for ws in ws_match.group()])
 		else:
 			ws_str = ''
 		return "ParseError at line {} '{}{}'".format(self._lineno, ws_str, self._str.strip())
@@ -48,7 +50,7 @@ def parse(file=None, quiet=False, debug=False):
 	if file:
 		try:
 			fp = open(file, 'r')
-			indent_lines = [line.rstrip() for line in fp.readlines() if len(line.strip()) > 0]
+			indent_lines = [line.rstrip() for line in fp.readlines()]
 			fp.close()
 		except:
 			raise Exception('Unable to read file.')
@@ -73,7 +75,7 @@ def parse(file=None, quiet=False, debug=False):
 			tag.append('>')
 			if len(content) > 0:
 				tag.append(content)
-				tag.append("</%s>" % (name,))
+				tag.append("</{}>".format(name))
 			else:
 				open_tags.append(name)
 			return (content, name, ''.join(tag),)
@@ -81,14 +83,21 @@ def parse(file=None, quiet=False, debug=False):
 		# remove top tag from open_tags stack and return a text version
 		def close_tag(indent):
 			name = open_tags.pop()
-			xml_lines.append("%s</%s>" % ('\t' * indent, name,))
+			xml_lines.append("{}</{}>".format(('\t' * indent), name))
 			return xml_lines[-1]
 
 		for ptr in range(0, len(indent_lines)):
 			# try each regular expression until a match is found, or none.
 			# we should have filtered out empty lines already so significant
 			# lines should be all that is left.
+			#
+			# unmatched lines will raise ParseError.
 			try:
+				match = re_blank.match(indent_lines[ptr])
+				if match:
+					# skip over blanks
+					continue
+					
 				match = re_node.match(indent_lines[ptr])
 				if match:
 					# node matches will continue 4 fields:
@@ -113,7 +122,7 @@ def parse(file=None, quiet=False, debug=False):
 				if match:
 					# comment found. do nothing fancy, just append it as an
 					# xml comment.
-					xml_lines.append("<!-- %s -->" % (indent_lines[ptr],))
+					xml_lines.append("<!-- {} -->".format(indent_lines[ptr]))
 					continue
 					
 				match = re_xml.match(indent_lines[ptr])
@@ -143,5 +152,5 @@ def parse(file=None, quiet=False, debug=False):
 
 if __name__ == '__main__':
 	filename = 'data/testfile.struct'
-	xml = parse(filename, True)
+	xml = parse(filename)
 	print(xml)
