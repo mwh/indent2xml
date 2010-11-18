@@ -21,31 +21,8 @@ import indent2xml
 from sys import argv
 import os
 
-if __name__ == '__main__':
-	options = { 
-		'file':{ 'description':"/path/to/structure/file", 'value':None },
-		'quiet':{ 'description':"Disable parsing errors.", 'value':False },
-		'debug':{ 'description':"Enable debug output.", 'value':False }
-	}
-	
-	def usage():
-		print("indent2xml Copyright (C) 2010 Nathan Middleton\n"
-			  "This program comes with ABSOLUTELY NO WARRANTY; for details use --license.\n"
-			  "This is free software, and you are welcome to redistribute it\n"
-			  "under certain conditions.\n\n"
-			  "Usage: indent2xml [options] [/path/to/structure/file]\n\nOptions:")
-		for option in options:
-			print("  --{:<10} {}".format(option, options[option]['description']))
-	
-	cmd_opts = argv[1:] if len(argv) > 1 else []
-	ptr = 0
-	while ptr < len(cmd_opts):
-		opt = cmd_opts[ptr]
-		if opt == '--help' or opt == '-h':
-			usage()
-			exit()
-		elif opt == '--license':
-			print("""                    GNU GENERAL PUBLIC LICENSE
+LICENSE = """
+                    GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
  Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
@@ -718,7 +695,34 @@ into proprietary programs.  If your program is a subroutine library, you
 may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
-<http://www.gnu.org/philosophy/why-not-lgpl.html>.\n""")
+<http://www.gnu.org/philosophy/why-not-lgpl.html>.
+"""
+
+if __name__ == '__main__':
+	options = { 
+		'file':{ 'description':"/path/to/structure/file", 'value':None },
+		'quiet':{ 'description':"Disable parsing errors.", 'value':False },
+		'debug':{ 'description':"Enable debug output.", 'value':False }
+	}
+	
+	def usage():
+		print("indent2xml Copyright (C) 2010 Nathan Middleton\n"
+			  "This program comes with ABSOLUTELY NO WARRANTY; for details use --license.\n"
+			  "This is free software, and you are welcome to redistribute it\n"
+			  "under certain conditions.\n\n"
+			  "Usage: indent2xml [options] [/path/to/structure/file]\n\nOptions:")
+		for option in options:
+			print("  --{:<10} {}".format(option, options[option]['description']))
+	
+	cmd_opts = argv[1:] if len(argv) > 1 else []
+	ptr = 0
+	while ptr < len(cmd_opts):
+		opt = cmd_opts[ptr]
+		if opt == '--help' or opt == '-h':
+			usage()
+			exit()
+		elif opt == '--license':
+			print(LICENSE)
 			exit()
 		elif opt.startswith('--') and opt[2:] in options:
 			if opt[2:] != 'file': options[opt[2:]] = True
