@@ -41,13 +41,10 @@ def parse(file=None, quiet=False, debug=False):
 			print(items, file=stderr)
 		
 	if file:
-		try:
-			fp = open(file, 'r')
-			indent_lines = [line.rstrip() for line in fp.readlines()]
-			indent_length = len(indent_lines)
-			fp.close()
-		except:
-			raise IOError('There was an error reading the file {}.'.format(file))
+		fp = open(file, 'r')
+		indent_lines = [line.rstrip() for line in fp.readlines()]
+		indent_length = len(indent_lines)
+		fp.close()
 		
 		# regular expressions used for line matching
 		re_comment = re.compile(r'^(\s*)#(\s*)(.*)')					# comments
