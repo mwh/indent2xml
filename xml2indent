@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+# Convert a suitable XML file into indent2xml's input format
+# Copyright (C) 2010 Michael Homer.
+# Distributed under the GNU GPL version 3 or later, under the same
+# licence terms as indent2xml.
+
+
+import sys
+import xml.dom.minidom
+
+def outputElement(el, depth=0):
+    indent = '\t' * depth
+    if el.nodeType == el.TEXT_NODE or el.nodeType == el.COMMENT_NODE:
+        # Skip text and comments. Single inline text bodies are
+        # handled already by the block below.
+        return
+    sys.stdout.write(indent)
+    sys.stdout.write(el.nodeName)
+    if el.attributes:
+        for k,v in el.attributes.items():
+            sys.stdout.write(',' + k + '="' +v+ '"')
+    if len(el.childNodes) == 1:
+        # Deal with <foo>yes</foo>-style elements.
+        if el.childNodes[0].nodeType == el.TEXT_NODE:
+            sys.stdout.write('\t')
+            sys.stdout.write(el.childNodes[0].wholeText.strip())
+            el.childNodes.remove(el.childNodes[0])
+    print()
+    for node in el.childNodes:
+        outputElement(node, depth + 1)
+
+if len(sys.argv) == 1 or sys.argv[1] == '--help':
+    print("xml2indent - Convert XML file to tab-indented format")
+    print("Usage: {} FILE".format(sys.argv[0]))
+    exit(0)
+
+dom = xml.dom.minidom.parse(sys.argv[1])
+print('<?xml version="1.0"?>')
+outputElement(dom.documentElement)
+
